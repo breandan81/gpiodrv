@@ -5,9 +5,8 @@ using namespace std;
 
 gpio::gpio(char *filename)
 {
-  int fd;
   char *addr;
-  fd = open (filename, O_RDWR);
+  fd = open (filename, O_RDWR | O_SYNC);
 
   if(fd == -1)
   {
@@ -22,7 +21,56 @@ gpio::gpio(char *filename)
   } 
   map = (gpio_map *) addr; 
 }
+void gpio::enableInterrupt(bool ch1, bool ch2)
+{
+  uint32_t val = 0;
+  if(ch1)
+  {
+    val |= 0x1;
+  }
+  if(ch2)
+  {
+    val |= 0x2; 
+  }
+  map->intEn = val;
+}
+void gpio::enableInterruptGlobal(bool en)
+{
+  if(en)
+  {
+    map->globalInt = 0x80000000;  
+  }
+  else
+  {
+    map->globalInt = 0;
+  }
+}
+void gpio::clearInt()
+{
+  uint32_t info = 1;
+  uint32_t intStatus;
 
+  intStatus = map->intStatus;
+  if(intStatus)
+  {
+    map->intStatus = intStatus;
+  }
+  ssize_t nb = write(fd, &info, sizeof(info));
+  
+  if( nb != (ssize_t)sizeof(info))
+  {
+    cout << "write error" << endl;
+    exit(1);
+  }
+
+}
+void gpio::waitInt()
+{
+  
+  uint32_t info = 1;
+
+  ssize_t nb = read(fd, &info, sizeof(info));
+}
 void gpio::setCh1Data(uint32_t data)
 {
   map->ch1Data = data;
